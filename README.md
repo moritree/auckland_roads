@@ -29,8 +29,7 @@ There are 2 datasets:
 
 - [ ] Highlight all roads selected from the search box
 - [ ] Implement directed graph (some roads are one way)
-* To increase performance: 
- - [x] Node and road objects also store connected segments
- - [ ] Implement a quad-tree index of all the nodes for selection of the closest intersection to the mouse
+- [x] Node and road objects also store connected segments *(Done: 29b1bf7a35abddd1f0e81ae969956084f7426873)*
+- [ ] Implement a quad-tree index of all the nodes for selection of the closest intersection to the mouse
 - [ ] Allow user to select suggestions from the search box
 - [ ] Display information labels for selected intersection/road(s)
