@@ -2,6 +2,7 @@ package roads
 import java.awt.geom.Ellipse2D
 import java.awt.{BasicStroke, Color, Point}
 
+import scala.collection.mutable.ListBuffer
 import scala.swing.event.{ButtonClicked, _}
 import scala.swing.{BorderPanel, Button, Component, Dimension, Graphics2D, MainFrame, ScrollPane, Swing, TextArea}
 
@@ -15,6 +16,8 @@ class GUI extends MainFrame {
 
   var roadOptions: List[Road] = _   // All roads matching the search
   var suggest: List[String] = _     // List of unique road names from roadOptions
+  var sel_node: Node = _
+  var sel_roads: ListBuffer[Road] = _
 
   //  Component on which to draw the map
   object Canvas extends Component {
@@ -26,8 +29,6 @@ class GUI extends MainFrame {
     var center_y: Double = d.height/2
 
     var n_entities = 0
-    var sel_node: Node = _
-    var sel_roads: List[Road] = _
 
     var scale: Double = 40
     var strokeWidth: Float = (0.004 * scale + 1).toFloat
@@ -41,18 +42,12 @@ class GUI extends MainFrame {
         // Double click: Select nearest intersection
         if (t == 2) {
           prev_mouse = p
+          roadOptions = null
 
           // Select closest node
           sel_node = Graph.nodes.filter{r: Node => withinScreen(r.loc, 0)}.reduce((a, b) =>
             if (Math.hypot(scrPosX(a.loc.x) - p.x, scrPosY(a.loc.y) - p.y)
               <= Math.hypot(scrPosX(b.loc.x) - p.x, scrPosY(b.loc.y) - p.y)) a else b)
-          if (sel_node.roads == null) {
-            println("NULL ROAD")
-            sel_node.roads = Graph.segments
-              .filter{p: Segment => p.loc.count {q: Location => withinScreen(q, strokeWidth)} >= 1}
-              .filter{p: Segment => p.toNode == sel_node || p.fromNode == sel_node}.map{f: Segment => f.road}.distinct
-              .map{f: Road => Graph.roads.filter{p: Road => p.label == f.label}}.reduce{(a, b) => a ++ b}
-          }
         }
       case MousePressed(_, p, _, _, _) => prev_mouse = p
       case MouseWheelMoved(_, _, _, i) => scale *= 1 - i*0.005
@@ -64,6 +59,16 @@ class GUI extends MainFrame {
     reactions += { case _ => this.repaint() }
 
     override def paintComponent(g: Graphics2D): Unit = {
+      if (sel_roads != null) sel_roads.clear()
+      if (roadOptions != null) {
+        if (sel_roads == null) sel_roads = ListBuffer(roadOptions.head)
+        sel_roads ++= roadOptions
+      }
+      if (sel_node != null && sel_node.segments != null) {
+        if(sel_roads == null) sel_roads = ListBuffer(sel_node.segments.head.road)
+        sel_roads ++= sel_node.segments.map(f => f.road)
+      }
+
       d = size
       center_x = d.width/2
       center_y = d.height/2
@@ -101,7 +106,8 @@ class GUI extends MainFrame {
               n_entities < 10000)}){
 
         // Paint red if this segment is selected, grey otherwise
-        if (sel_roads != null && sel_roads.count(f => f.segments.contains(seg)) > 0) g.setColor(Color.RED)
+        if (sel_roads != null && sel_roads.count(f => if (f.segments != null) f.segments.contains(seg) else false) > 0)
+          g.setColor(Color.RED)
         else g.setColor(Color.DARK_GRAY)
 
         // If this segment's loc objects have not been initialized yet, do so
@@ -116,7 +122,9 @@ class GUI extends MainFrame {
         n_entities += 1
       }
 
-      println("n_drawn=" + n_entities + ", scale=" + scale.round)
+      if(sel_node != null) println("sel_node.segments=" + sel_node.segments)
+      if(sel_roads != null) println("sel_roads=" + sel_roads)
+      println("n_drawn=" + n_entities + ", scale=" + scale.round + "\n")
     }
 
     // methods for checking what we can draw
@@ -178,6 +186,7 @@ class GUI extends MainFrame {
 
   reactions += {
     case EditDone(`searchBar`) =>
+      sel_node = null
       roadOptions = Graph.roadTrie.findRoadsByPrefix(searchBar.text.toString, None).toList
       suggest = roadOptions.map(f => f.label).distinct.map(f => f.capitalize)
       opt.text = suggest.map(f => f + "\n").mkString
@@ -191,7 +200,5 @@ class GUI extends MainFrame {
   }
   reactions += { case _ => Canvas.repaint()}
 
-
-  println(Graph.roadTrie.findRoadsByPrefix("man".toLowerCase, None).toList)
   visible = true
 }
