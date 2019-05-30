@@ -7,9 +7,9 @@ class RoadTrieNode(var depth: Int) {
   var children: mutable.Map[Char, RoadTrieNode] = _
   var roads: ListBuffer[Road] = _
 
-  /**
-    * Recursively add road with label s to the trie
-    * @param s      label of road to add to trie
+  /** Recursively add road with label s to the trie
+    *
+    * @param s      label of road
     * @param t_opt  tail of string, only for recursion
     */
   def add(s: String, t_opt: Option[String]): Unit = {
@@ -27,8 +27,6 @@ class RoadTrieNode(var depth: Int) {
       else n = children(t.head)
     }
 
-    assert(!t.isEmpty)
-
     if(t.length == 1) {
       Graph.roads.filter{p: Road => p.label.toUpperCase.equals(s.toUpperCase)}.foreach{f =>
         if (roads == null) roads = collection.mutable.ListBuffer[Road](f)
@@ -37,9 +35,17 @@ class RoadTrieNode(var depth: Int) {
     else n.add(s, Some(t.tail))
   }
 
+  /** Find a list of all the roads which match the given label prefix (not case sensitive)
+    *
+    * @param prefix   Prefix to search for
+    * @param ls_opt   List in progress of roads, only for recursion
+    * @return         List of matching roads
+    */
   def findRoadsByPrefix(prefix: String, ls_opt: Option[ListBuffer[Road]]): ListBuffer[Road] = {
+    // Initialize new list if not supplied
     var ls: ListBuffer[Road] = ls_opt.getOrElse(new ListBuffer[Road])
 
+    // Add nothing to the list that doesn't match the entire prefix
     if ( this.depth < prefix.length) {
       if (children.contains(prefix.apply(depth))) children(prefix.apply(depth)).findRoadsByPrefix(prefix, Some(ls))
     }

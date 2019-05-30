@@ -37,8 +37,4 @@ object Graph {
   println(segments.length + " segments loaded.\n")
 
   GUI.apply
-
-  def main(args: Array[String]): Unit = {
-
-  }
 }

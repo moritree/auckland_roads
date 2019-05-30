@@ -13,22 +13,27 @@ class GUI extends MainFrame {
   var x_off: Double = 0
   var y_off: Double = 0
 
-  var d = size
-  var center_x: Double = d.width/2
-  var center_y: Double = d.height/2
+  var roadOptions: List[Road] = _   // All roads matching the search
+  var suggest: List[String] = _     // List of unique road names from roadOptions
 
-  var roadOptions: List[Road] = _
-  var suggest: List[String] = _
-
+  //  Component on which to draw the map
   object Canvas extends Component {
     preferredSize = new Dimension(320, 320)
-    var scale: Double = 40
-    var strokeWidth: Float = (0.004 * scale + 1).toFloat
+    var d: Dimension = size
+
+    // Center of the screen (px)
+    var center_x: Double = d.width/2
+    var center_y: Double = d.height/2
+
     var n_entities = 0
     var sel_node: Node = _
 
+    var scale: Double = 40
+    var strokeWidth: Float = (0.004 * scale + 1).toFloat
+
     var prev_mouse = new Point(center_x.toInt, center_y.toInt)
 
+    // Mouse controls
     listenTo(mouse.clicks, mouse.wheel, mouse.moves)
     reactions += {
       case MouseClicked(_, p, _, t, _) =>
@@ -62,8 +67,11 @@ class GUI extends MainFrame {
       center_y = d.height/2
       n_entities = 0
 
+      // Enable antialiasing
       g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
         java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+
+      // Draw background
       g.setColor(Color.WHITE)
       g.fillRect(0, 0, d.width, d.height)
 
@@ -109,7 +117,7 @@ class GUI extends MainFrame {
       println("n_drawn=" + n_entities + ", scale=" + scale.round)
     }
 
-    // Sub methods for checking what we can draw
+    // methods for checking what we can draw
     def withinScreen(loc: Location, buff: Double): Boolean = {
       (scrPosX(loc.x) + buff >= 0 && scrPosX(loc.x) - buff <= d.width
         && scrPosY(loc.y) + buff >= 0  && scrPosY(loc.y) - buff <= d.height)
@@ -118,9 +126,11 @@ class GUI extends MainFrame {
     def scrPosY(y: Double): Double = center_y + y_off + ((y - y_off) * scale)
   }
 
+  // Search bar for road prefixes
   val searchBar = new swing.TextField()
   searchBar.editable = true
 
+  // Text area displaying suggestions
   val opt = new TextArea() {
     rows = 4
     editable = false
@@ -128,11 +138,13 @@ class GUI extends MainFrame {
     wordWrap = true
   }
 
+  // Control buttons
   val (in_button, out_button, north_button, south_button, east_button, west_button)
   = (new Button("+"), new Button("-"), new Button("^"),
     new Button("v"), new Button(">"), new Button("<"))
-
   listenTo(in_button, out_button, north_button, south_button, east_button, west_button, searchBar)
+
+  // Set up GUI components
   contents = new BorderPanel {
     add (new BorderPanel {
       // Zoom buttons
@@ -149,6 +161,7 @@ class GUI extends MainFrame {
         add(south_button, BorderPanel.Position.South)
       }, BorderPanel.Position.East)
 
+      // Search bar & suggestions pane
       add (new BorderPanel {
         add(searchBar, BorderPanel.Position.North)
         add(new ScrollPane(opt), BorderPanel.Position.Center)
