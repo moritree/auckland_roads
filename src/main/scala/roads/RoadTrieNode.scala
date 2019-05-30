@@ -29,8 +29,8 @@ class RoadTrieNode(var depth: Int) {
 
     if(t.length == 1) {
       Graph.roads.filter{p: Road => p.label.toUpperCase.equals(s.toUpperCase)}.foreach{f =>
-        if (roads == null) roads = collection.mutable.ListBuffer[Road](f)
-        else roads += f}
+        if (n.roads == null) n.roads = collection.mutable.ListBuffer[Road](f)
+        else n.roads += f}
     }
     else n.add(s, Some(t.tail))
   }
@@ -47,7 +47,8 @@ class RoadTrieNode(var depth: Int) {
 
     // Add nothing to the list that doesn't match the entire prefix
     if ( this.depth < prefix.length) {
-      if (children.contains(prefix.apply(depth))) children(prefix.apply(depth)).findRoadsByPrefix(prefix, Some(ls))
+      if (children.contains(prefix.apply(depth)))
+        children(prefix.apply(depth)).findRoadsByPrefix(prefix, Some(ls))
     }
     else {
       if (roads != null) roads foreach (f => ls += f)

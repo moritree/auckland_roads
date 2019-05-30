@@ -4,7 +4,7 @@ import java.awt.{BasicStroke, Color, Point}
 
 import scala.collection.mutable.ListBuffer
 import scala.swing.event.{ButtonClicked, _}
-import scala.swing.{BorderPanel, Button, Component, Dimension, Graphics2D, ListView, MainFrame, ScrollPane, Swing, TextArea}
+import scala.swing.{BorderPanel, Button, Component, Dimension, Graphics2D, ListView, MainFrame, ScrollPane, Swing}
 
 class GUI extends MainFrame {
   title = "GUI program"
@@ -45,7 +45,7 @@ class GUI extends MainFrame {
           roadOptions = null
 
           // Select closest node
-          sel_node = Graph.nodes.filter{r: Node => withinScreen(r.loc, 0)}.reduce((a, b) =>
+          sel_node = Graph.nodes.reduce((a, b) =>
             if (Math.hypot(scrPosX(a.loc.x) - p.x, scrPosY(a.loc.y) - p.y)
               <= Math.hypot(scrPosX(b.loc.x) - p.x, scrPosY(b.loc.y) - p.y)) a else b)
         }
@@ -140,22 +140,17 @@ class GUI extends MainFrame {
   val searchBar = new swing.TextField()
   searchBar.editable = true
 
-  // Text area displaying suggestions
-  val opt = new TextArea() {
-    rows = 4
-    editable = false
-    lineWrap = true
-    wordWrap = true
+  // List displaying suggestions
+  val optionsList: ListView[String] = new scala.swing.ListView[String](Seq("")) {
+    visibleRowCount = 4
   }
-
-  val optionsList: ListView[String] = new scala.swing.ListView[String](Seq("a", "b", "c")) {}
 
   // Control buttons
   val (in_button, out_button, north_button, south_button, east_button, west_button)
   = (new Button("+"), new Button("-"), new Button("^"),
     new Button("v"), new Button(">"), new Button("<"))
   listenTo(in_button, out_button, north_button, south_button,
-    east_button, west_button, searchBar, optionsList.selection)
+    east_button, west_button, searchBar.keys, optionsList.selection)
 
   // Set up GUI components
   contents = new BorderPanel {
@@ -188,28 +183,32 @@ class GUI extends MainFrame {
   }
 
   reactions += {
-    case EditDone(`searchBar`) =>
-      if (searchBar.text.toString != "") {
-        sel_node = null
-        roadOptions = Graph.roadTrie.findRoadsByPrefix(searchBar.text.toString, None).toList
-        suggest = roadOptions.map(f => f.label).distinct.map(f => f.capitalize)
-        optionsList.listData = suggest
-        opt.text = suggest.map(f => f + "\n").mkString
-        opt.caret.position = 0
-      }
-    case SelectionChanged(`optionsList`) => if (optionsList.selection.items.size > 0) {
-      println(optionsList.selection.items(0))
-      sel_node = null
-      sel_roads = sel_roads.filter(p => p.label.equals(optionsList.selection.items(0)))
+    case SelectionChanged(`optionsList`) => if (optionsList.selection.items.nonEmpty) {
+      searchBar.text = optionsList.selection.items(0)
+      refreshSearch()
     }
-    case ButtonClicked(`in_button`) => Canvas.scale *= 1.2;
-    case ButtonClicked(`out_button`) => Canvas.scale *= 0.8;
-    case ButtonClicked(`north_button`) => y_off -= 20/Canvas.scale;
-    case ButtonClicked(`south_button`) => y_off += 20/Canvas.scale;
-    case ButtonClicked(`east_button`) => x_off += 20/Canvas.scale;
-    case ButtonClicked(`west_button`) => x_off -= 20/Canvas.scale;
+    case KeyReleased(`searchBar`, _, _, _) => refreshSearch()
+    case ButtonClicked(`in_button`)     => Canvas.scale *= 1.2;
+    case ButtonClicked(`out_button`)    => Canvas.scale *= 0.8;
+    case ButtonClicked(`north_button`)  => y_off -= 20/Canvas.scale;
+    case ButtonClicked(`south_button`)  => y_off += 20/Canvas.scale;
+    case ButtonClicked(`east_button`)   => x_off += 20/Canvas.scale;
+    case ButtonClicked(`west_button`)   => x_off -= 20/Canvas.scale;
   }
   reactions += { case _ => Canvas.repaint()}
+
+  def refreshSearch(): Unit = {
+    sel_node = null
+    roadOptions = null
+    optionsList.listData = Seq[String]("")
+    sel_roads = null
+    suggest = null
+    if (searchBar.text.toString != "") {
+      roadOptions = Graph.roadTrie.findRoadsByPrefix(searchBar.text.toString.toLowerCase, None).toList
+      optionsList.listData = roadOptions.map(f => f.label).distinct.map(f => f.capitalize)
+      sel_roads = roadOptions.to[ListBuffer]
+    }
+  }
 
   visible = true
 }
