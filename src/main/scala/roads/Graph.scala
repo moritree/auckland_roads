@@ -1,5 +1,6 @@
 package roads
 
+import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 object Graph {
@@ -23,7 +24,7 @@ object Graph {
   println("Generating road prefix trie...")
   val roadTrie: RoadTrieNode = new RoadTrieNode(0)
   roads.foreach(f => roadTrie.add(f.label.toLowerCase, None))
-  println(roads.length + " road labels loaded.\n")
+  println("Done.\n")
 
   // Load all segments
   println("Loading segments...")
@@ -36,5 +37,16 @@ object Graph {
       ls.drop(4).map(_.toDouble).grouped(2).toList))               // Group coordinates into pairs)
   println(segments.length + " segments loaded.\n")
 
-  GUI.apply
+  // Add segments to node and road objects
+  println("Adding segments to nodes and roads...")
+  segments.foreach { f =>
+    if (f.road.segments == null) f.road.segments = ListBuffer(f) else f.road.segments += f
+    if (f.fromNode.segments == null) f.fromNode.segments = ListBuffer(f) else f.fromNode.segments += f
+    if (f.toNode.segments == null) f.toNode.segments = ListBuffer(f) else f.toNode.segments += f
+  }
+  println("Done.\n")
+
+  val gui: GUI = new GUI
+
+  def main(args: Array[String]):Unit = {}
 }

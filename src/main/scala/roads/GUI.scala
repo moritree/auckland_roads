@@ -27,6 +27,7 @@ class GUI extends MainFrame {
 
     var n_entities = 0
     var sel_node: Node = _
+    var sel_roads: List[Road] = _
 
     var scale: Double = 40
     var strokeWidth: Float = (0.004 * scale + 1).toFloat
@@ -46,6 +47,7 @@ class GUI extends MainFrame {
             if (Math.hypot(scrPosX(a.loc.x) - p.x, scrPosY(a.loc.y) - p.y)
               <= Math.hypot(scrPosX(b.loc.x) - p.x, scrPosY(b.loc.y) - p.y)) a else b)
           if (sel_node.roads == null) {
+            println("NULL ROAD")
             sel_node.roads = Graph.segments
               .filter{p: Segment => p.loc.count {q: Location => withinScreen(q, strokeWidth)} >= 1}
               .filter{p: Segment => p.toNode == sel_node || p.fromNode == sel_node}.map{f: Segment => f.road}.distinct
@@ -99,7 +101,7 @@ class GUI extends MainFrame {
               n_entities < 10000)}){
 
         // Paint red if this segment is selected, grey otherwise
-        if (sel_node != null && sel_node.roads.contains(seg.road)) g.setColor(Color.RED)
+        if (sel_roads != null && sel_roads.count(f => f.segments.contains(seg)) > 0) g.setColor(Color.RED)
         else g.setColor(Color.DARK_GRAY)
 
         // If this segment's loc objects have not been initialized yet, do so
@@ -192,8 +194,4 @@ class GUI extends MainFrame {
 
   println(Graph.roadTrie.findRoadsByPrefix("man".toLowerCase, None).toList)
   visible = true
-}
-
-object GUI {
-  def apply: GUI = new GUI
 }
