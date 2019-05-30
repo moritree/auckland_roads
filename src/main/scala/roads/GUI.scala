@@ -4,7 +4,7 @@ import java.awt.{BasicStroke, Color, Point}
 
 import scala.collection.mutable.ListBuffer
 import scala.swing.event.{ButtonClicked, _}
-import scala.swing.{BorderPanel, Button, Component, Dimension, Graphics2D, MainFrame, ScrollPane, Swing, TextArea}
+import scala.swing.{BorderPanel, Button, Component, Dimension, Graphics2D, ListView, MainFrame, ScrollPane, Swing, TextArea}
 
 class GUI extends MainFrame {
   title = "GUI program"
@@ -122,9 +122,9 @@ class GUI extends MainFrame {
         n_entities += 1
       }
 
-      if(sel_node != null) println("sel_node.segments=" + sel_node.segments)
-      if(sel_roads != null) println("sel_roads=" + sel_roads)
-      println("n_drawn=" + n_entities + ", scale=" + scale.round + "\n")
+//      if(sel_node != null) println("sel_node.segments=" + sel_node.segments)
+//      if(sel_roads != null) println("sel_roads=" + sel_roads)
+//      println("n_drawn=" + n_entities + ", scale=" + scale.round + "\n")
     }
 
     // methods for checking what we can draw
@@ -148,11 +148,14 @@ class GUI extends MainFrame {
     wordWrap = true
   }
 
+  val optionsList: ListView[String] = new scala.swing.ListView[String](Seq("a", "b", "c")) {}
+
   // Control buttons
   val (in_button, out_button, north_button, south_button, east_button, west_button)
   = (new Button("+"), new Button("-"), new Button("^"),
     new Button("v"), new Button(">"), new Button("<"))
-  listenTo(in_button, out_button, north_button, south_button, east_button, west_button, searchBar)
+  listenTo(in_button, out_button, north_button, south_button,
+    east_button, west_button, searchBar, optionsList.selection)
 
   // Set up GUI components
   contents = new BorderPanel {
@@ -174,7 +177,7 @@ class GUI extends MainFrame {
       // Search bar & suggestions pane
       add (new BorderPanel {
         add(searchBar, BorderPanel.Position.North)
-        add(new ScrollPane(opt), BorderPanel.Position.Center)
+        add(new ScrollPane(optionsList), BorderPanel.Position.Center)
       }, BorderPanel.Position.Center)
 
       border = Swing.EmptyBorder(10)
@@ -186,11 +189,19 @@ class GUI extends MainFrame {
 
   reactions += {
     case EditDone(`searchBar`) =>
+      if (searchBar.text.toString != "") {
+        sel_node = null
+        roadOptions = Graph.roadTrie.findRoadsByPrefix(searchBar.text.toString, None).toList
+        suggest = roadOptions.map(f => f.label).distinct.map(f => f.capitalize)
+        optionsList.listData = suggest
+        opt.text = suggest.map(f => f + "\n").mkString
+        opt.caret.position = 0
+      }
+    case SelectionChanged(`optionsList`) => if (optionsList.selection.items.size > 0) {
+      println(optionsList.selection.items(0))
       sel_node = null
-      roadOptions = Graph.roadTrie.findRoadsByPrefix(searchBar.text.toString, None).toList
-      suggest = roadOptions.map(f => f.label).distinct.map(f => f.capitalize)
-      opt.text = suggest.map(f => f + "\n").mkString
-      opt.caret.position = 0
+      sel_roads = sel_roads.filter(p => p.label.equals(optionsList.selection.items(0)))
+    }
     case ButtonClicked(`in_button`) => Canvas.scale *= 1.2;
     case ButtonClicked(`out_button`) => Canvas.scale *= 0.8;
     case ButtonClicked(`north_button`) => y_off -= 20/Canvas.scale;
