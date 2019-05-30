@@ -27,7 +27,7 @@ There are 2 datasets:
 
 ## To do
 
-- [ ] Highlight all roads selected from the search box
+- [x] Highlight all roads selected from the search box *(Done: 1fbcd94b4b57fd67be55cec9d6dcfcd614c6a037)*
 - [ ] Implement directed graph (some roads are one way)
 - [x] Node and road objects also store connected segments *(Done: 29b1bf7a35abddd1f0e81ae969956084f7426873)*
 - [ ] Implement a quad-tree index of all the nodes for selection of the closest intersection to the mouse
