@@ -4,7 +4,7 @@
 		module="auckland_roads$sources"
 		revision="0.1"
 		status="integration"
-		publication="20190527194123"
+		publication="20190603135552"
 	/>
 	<configurations>
 		<conf name="compile" visibility="public" description=""/>

@@ -4,7 +4,9 @@ class Location(val x: Double, val y: Double) {
   /**
     * Return distance between this location and another
     */
-  def distance(other: Location): Double = Math.hypot(this.x - other.x, this.y - other.y)
+  def distance(other: Location): Double =  {
+    Math.hypot(this.x - other.x, this.y - other.y)
+  }
 
   /**
     * Return true if this location is within dist of other.

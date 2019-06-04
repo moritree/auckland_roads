@@ -1,5 +1,4 @@
 package roads
-import java.awt.geom.Ellipse2D
 import java.awt.{BasicStroke, Color, Point}
 
 import scala.collection.mutable.ListBuffer
@@ -45,9 +44,9 @@ class GUI extends MainFrame {
           roadOptions = null
 
           // Select closest node
-          sel_node = Graph.nodes.reduce((a, b) =>
-            if (Math.hypot(scrPosX(a.loc.x) - p.x, scrPosY(a.loc.y) - p.y)
-              <= Math.hypot(scrPosX(b.loc.x) - p.x, scrPosY(b.loc.y) - p.y)) a else b)
+          val mouse_xpos = (p.x - center_x)/scale + x_off
+          val mouse_ypos = (p.y - center_y)/scale + y_off
+          sel_node = Graph.nodeTree.findClosest(new Location(mouse_xpos, mouse_ypos), 1)
         }
       case MousePressed(_, p, _, _, _) => prev_mouse = p
       case MouseWheelMoved(_, _, _, i) => scale *= 1 - i*0.005
@@ -82,49 +81,78 @@ class GUI extends MainFrame {
       g.setColor(Color.WHITE)
       g.fillRect(0, 0, d.width, d.height)
 
-      // Line width scales with image
-      strokeWidth = (0.008 * scale + 2).toFloat
-      g.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+      // Draw polygons
 
-      // Draw nodes
-      val diam = 0.03 * scale
-      if (scale >= 300) {
-        for (node <- Graph.nodes.filter { p: Node => withinScreen(p.loc, diam / 2)}) {
-          // Paint blue if this node is selected, light grey otherwise
-          if (sel_node == node) g.setColor(Color.BLUE)
-          else g.setColor(Color.LIGHT_GRAY)
+//      g.setStroke(new BasicStroke(1))
+////      // Draw QuadTree areas
+//      g.setColor(Color.LIGHT_GRAY)
+//      for (tree <- Graph.treeList) {
+//        var x0 = tree.x0
+//        var y0 = tree.y0
+//        var x1 = tree.x1
+//        var y1 = tree.y1
+//        var tx = scrPosX(x0).round.toInt
+//        var ty = scrPosY(y0).round.toInt
+//        g.drawRect(tx, ty, scrPosX(x1).round.toInt - tx, scrPosY(y1).round.toInt - ty)
+//      }
 
-          g.fill(new Ellipse2D.Double(scrPosX(node.loc.x) - diam / 2, scrPosY(node.loc.y) - diam / 2, diam, diam))
-          n_entities += 1
+//      println(actPosX(0), actPosX(d.width), actPosY(0), actPosY(d.height))
+//      println(Graph.nodeTree.allWithinRange(actPosX(0), actPosX(d.width), actPosY(0), actPosY(d.height)))
+
+      // Draw polygons
+      for (poly <- Graph.polygons) {
+        poly.polyType match {
+          case "build" => g.setColor(Color.GRAY.darker())
+          case "city" | "land_urban" => g.setColor(Color.GRAY)
+          case "land_non_urban" => g.setColor(new Color(160, 200, 150))
+          case "lake" => g.setColor(new Color(140, 180, 240))
+          case "river" => g.setColor(Color.BLUE.brighter())
+          case "sea" => g.setColor(new Color(110, 150, 190))
+          case "green" => g.setColor(new Color(180, 240, 120))
+          case _ => g.setColor(Color.BLACK)
         }
+        g.fillPolygon(
+          poly.loc.map(f => scrPosX(f.x).toInt).toArray,
+          poly.loc.map(f => scrPosY(f.y).toInt).toArray,
+          poly.loc.length)
       }
 
       // Draw segments
-      for (seg <- Graph.segments
-          .filter{p: Segment => (withinScreen(p.toNode.loc, 50) || withinScreen(p.fromNode.loc, 50)) &&
-            (Math.hypot(p.toNode.loc.x - p.fromNode.loc.x, p.toNode.loc.y - p.fromNode.loc.y)*scale > 5 ||
-              n_entities < 10000)}){
+      val diam = 0.03 * scale
+      val visible = Graph.nodeTree.allWithinRange(actPosX(0), actPosX(d.width), actPosY(0), actPosY(d.height))
+      if (visible != List(null)) {
+//        if (scale >= 300) for (node <- visible) {
+//          // Paint blue if this node is selected, light grey otherwise
+//          if (sel_node == node) g.setColor(Color.BLUE)
+//          else g.setColor(Color.LIGHT_GRAY)
+//
+//          g.fill(new Ellipse2D.Double(scrPosX(node.loc.x) - diam / 2, scrPosY(node.loc.y) - diam / 2, diam, diam))
+//          n_entities += 1
+//        }
 
-        // Paint red if this segment is selected, grey otherwise
-        if (sel_roads != null && sel_roads.count(f => if (f.segments != null) f.segments.contains(seg) else false) > 0)
-          g.setColor(Color.RED)
-        else g.setColor(Color.DARK_GRAY)
+        for (seg <- visible.flatMap(f => if(f != null && f.segments != null) f.segments.distinct else null)) {
+          if (!(scale <= 20 && seg.road.roadclass == 0)) {
+            // Line width scales with image
+            strokeWidth = ((3 + seg.road.roadclass / 2) * 0.005 * scale).toFloat
+            g.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
 
-        // If this segment's loc objects have not been initialized yet, do so
-        if (seg.loc == null) {
-          seg.loc = seg.coords.map((x: List[Double]) => Location.newFromLatLon(x.head, x.last))
+            // Paint red if this segment is selected, grey otherwise
+            if (sel_roads != null && sel_roads.count(f => if (f.segments != null) f.segments.contains(seg) else false) > 0)
+              g.setColor(Color.RED)
+            else g.setColor(Color.DARK_GRAY)
+
+            for (i <- 0 until seg.coords.length - 1)
+              g.drawLine(Math.round(scrPosX(seg.loc.apply(i).x)).toInt, Math.round(scrPosY(seg.loc.apply(i).y)).toInt,
+                Math.round(scrPosX(seg.loc.apply(i + 1).x)).toInt, Math.round(scrPosY(seg.loc.apply(i + 1).y)).toInt)
+
+            n_entities += 1
+          }
         }
-
-        for (i <- 0 until seg.coords.length - 1)
-          g.drawLine(Math.round(scrPosX(seg.loc.apply(i).x)).toInt, Math.round(scrPosY(seg.loc.apply(i).y)).toInt,
-            Math.round(scrPosX(seg.loc.apply(i + 1).x)).toInt, Math.round(scrPosY(seg.loc.apply(i + 1).y)).toInt)
-
-        n_entities += 1
       }
 
 //      if(sel_node != null) println("sel_node.segments=" + sel_node.segments)
 //      if(sel_roads != null) println("sel_roads=" + sel_roads)
-//      println("n_drawn=" + n_entities + ", scale=" + scale.round + "\n")
+      println("n_drawn=" + n_entities + ", scale=" + scale.round)
     }
 
     // methods for checking what we can draw
@@ -134,6 +162,9 @@ class GUI extends MainFrame {
     }
     def scrPosX(x: Double): Double = center_x + x_off + ((x - x_off) * scale)
     def scrPosY(y: Double): Double = center_y + y_off + ((y - y_off) * scale)
+
+    def actPosX(x: Double): Double = (x - center_x)/scale + x_off
+    def actPosY(y: Double): Double = (y - center_y)/scale + y_off
   }
 
   // Search bar for road prefixes
