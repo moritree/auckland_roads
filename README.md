@@ -24,12 +24,3 @@ There are 2 datasets:
 **large:** A set of data for the complete Auckland region, (30035 roads, 12875 distinct road names, 354760 intersections, and 42480 road segments). This data set takes several minutes to load.
 
 **small:** A much smaller set of data for a region around the central city (746 roads, 481 distinct road names, 1080 intersections, 1412 road segments).
-
-## To do
-
-- [x] Highlight all roads selected from the search box *(Done: 1fbcd94b4b57fd67be55cec9d6dcfcd614c6a037)*
-- [ ] Implement directed graph (some roads are one way)
-- [x] Node and road objects also store connected segments *(Done: 29b1bf7a35abddd1f0e81ae969956084f7426873)*
-- [ ] Implement a quad-tree index of all the nodes for selection of the closest intersection to the mouse
-- [x] Allow user to select suggestions from the search box *(Done: f946c337f120a3272804c3819da0d2b9abd63e83)*
-- [ ] Display information labels for selected intersection/road(s)
